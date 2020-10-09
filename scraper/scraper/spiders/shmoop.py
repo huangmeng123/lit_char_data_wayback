@@ -5,19 +5,23 @@ import logging
 from scraper.items import LiteratureInfo, CharacterInfo
 from scraper.utils import remove_html_tags
 
+SPIDER_NAME = 'shmoop'
+
+# Remove all handlers associated with the root logger object.
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 logging.basicConfig(
-    filename="shmoop.log", 
+    filename='runtime.log', 
     format='%(asctime)s %(message)s', 
     filemode='w',
 ) 
 
-logger = logging.getLogger('shmooplogger')
+logger = logging.getLogger(f'{SPIDER_NAME}-logger')
 logger.setLevel(logging.DEBUG)
 
-SHMOOP = 'shmoop'
-
 class ShmoopSpider(Spider):
-    name = 'shmoop'
+    name = SPIDER_NAME
     allowed_domains = ['www.shmoop.com']
     start_urls = ['https://www.shmoop.com/study-guides/literature']
     custom_settings = {
@@ -49,13 +53,13 @@ class ShmoopSpider(Spider):
             yield Request(
                 url=full_url,
                 callback=self.parse_book,
-                meta={
+                cb_kwargs={
                     'book_title': book_title,
                 },
+                dont_filter=True,
             )
     
-    def parse_book(self, response):
-        book_title = response.meta['book_title']
+    def parse_book(self, response, book_title):
         author = response.xpath(
             '//span[@class="author-name"]/text()',
         ).get().strip()
@@ -73,9 +77,10 @@ class ShmoopSpider(Spider):
             yield Request(
                 url=summary_url,
                 callback=self.parse_summary,
-                meta={
+                cb_kwargs={
                     'book_title': book_title,
                 },
+                dont_filter=True,
             )
 
         character_list_url = response.xpath(
@@ -90,23 +95,23 @@ class ShmoopSpider(Spider):
             yield Request(
                 url=character_list_url,
                 callback=self.parse_character_list,
-                meta={
+                cb_kwargs={
                     'book_title': book_title,
                 },
+                dont_filter=True,
             )
 
         # report literature info
         yield LiteratureInfo(            
             book_title=book_title,
-            source=SHMOOP,
+            source=SPIDER_NAME,
             author=author,
             book_url=response.url,
             summary_url=summary_url,
             character_list_url=character_list_url,
         )
 
-    def parse_summary(self, response):
-        book_title = response.meta['book_title']
+    def parse_summary(self, response, book_title):
         summary = response.xpath(
             '//div[@class="content-wrapper"]/div[2]/p',
         ).extract()
@@ -115,13 +120,12 @@ class ShmoopSpider(Spider):
         ).split())
         yield LiteratureInfo(
             book_title=book_title,
-            source=SHMOOP,
+            source=SPIDER_NAME,
             summary_url=response.url,
             summary_text=summary_text,
         )
 
-    def parse_character_list(self, response):
-        book_title = response.meta['book_title']
+    def parse_character_list(self, response, book_title):
         character_urls = response.xpath(
             '//div[@class="content-wrapper"]/div[2]/h3/a/@href',
         ).extract()
@@ -130,10 +134,11 @@ class ShmoopSpider(Spider):
             yield Request(
                 url=character_url,
                 callback=self.parse_character,
-                meta={
+                cb_kwargs={
                     'book_title': book_title,
                     'character_order': i,
                 },
+                dont_filter=True,
             )
 
     def __parse_major_character(self, response, character_name, character_order):
@@ -188,10 +193,7 @@ class ShmoopSpider(Spider):
         
         return characters
 
-    def parse_character(self, response):
-        book_title = response.meta['book_title']
-        character_order = response.meta['character_order']
-
+    def parse_character(self, response, book_title, character_order):
         cname = response.xpath('//h2[@class="title"]/text()').get().strip()
 
         if cname == 'Minor Characters':
@@ -207,7 +209,7 @@ class ShmoopSpider(Spider):
             yield CharacterInfo(
                 character_name=character['name'],
                 book_title=book_title,
-                source=SHMOOP,
+                source=SPIDER_NAME,
                 character_order=character['order'],
                 description_url=(
                     response.url

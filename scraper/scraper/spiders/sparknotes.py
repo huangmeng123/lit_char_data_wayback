@@ -4,8 +4,12 @@ import logging
 
 from scraper.items import LiteratureInfo, CharacterInfo
 
+# Remove all handlers associated with the root logger object.
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
 logging.basicConfig(
-    filename="sparknotes.log", 
+    filename='runtime.log', 
     format='%(asctime)s %(message)s', 
     filemode='w',
 ) 
@@ -42,20 +46,14 @@ class SparknotesSpider(Spider):
             yield Request(
                 url=full_url,
                 callback=self.parse_book,
-                meta={
+                cb_kwargs={
                     'book_title': title,
                     'author': author,
                 },
+                dont_filter=True,
             )
 
-    def parse_book(self, response):
-        book_title = response.meta['book_title']
-        author = response.meta['author']
-        meta = {
-            'book_title': book_title,
-            'author': author,
-        }
-
+    def parse_book(self, response, book_title, author):
         subsection_selectors = response.xpath(
             '//div[@class="landing-page__umbrella__section"]/ul/li',
         )
@@ -73,7 +71,10 @@ class SparknotesSpider(Spider):
             yield Request(
                 url=summary_url,
                 callback=self.parse_summary,
-                meta=meta,
+                cb_kwargs={
+                    'book_title': book_title,
+                },
+                dont_filter=True,
             )
 
         # get character list url
@@ -103,7 +104,10 @@ class SparknotesSpider(Spider):
             yield Request(
                 url=character_list_url,
                 callback=self.parse_character_list,
-                meta=meta,
+                cb_kwargs={
+                    'book_title': book_title,
+                },
+                dont_filter=True,
             )
 
 
@@ -117,8 +121,7 @@ class SparknotesSpider(Spider):
             character_list_url=character_list_url,
         )
 
-    def parse_summary(self, response):
-        book_title = response.meta['book_title']
+    def parse_summary(self, response, book_title):
         summary = response.xpath('//*[@id="plotoverview"]/p/text()').extract()
 
         if len(summary) == 0:
@@ -131,10 +134,7 @@ class SparknotesSpider(Spider):
             summary_text=' '.join('\n'.join(summary).split()),
         )
 
-    def parse_character_list(self, response):
-
-        book_title = response.meta['book_title']
-
+    def parse_character_list(self, response, book_title):
         character_xpath = '//li[@class="mainTextContent__list-content__item"]'
         character_selectors = response.xpath(character_xpath)
 

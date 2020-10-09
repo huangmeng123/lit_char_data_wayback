@@ -35,3 +35,7 @@ def remove_html_tags(raw_html):
     cleanr = re.compile('<.*?>')
     cleantext = re.sub(cleanr, '', raw_html)
     return cleantext
+
+def clean_text_or_none(text):
+    if text is not None and len(text) > 0:
+        return ' '.join(text.strip().split())
