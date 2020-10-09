@@ -12,7 +12,7 @@ for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
 
 logging.basicConfig(
-    filename='runtime-dev.log', 
+    filename='runtime.log', 
     format='%(asctime)s %(message)s', 
     filemode='w',
 ) 
@@ -25,9 +25,9 @@ class GradeSaverSpider(Spider):
     allowed_domains = ['gradesaver.com']
     start_urls = ['https://www.gradesaver.com/study-guides']
     custom_settings = {
-        'DOWNLOAD_DELAY': 0.1,
+        # 'DOWNLOAD_DELAY': 0.1,
         'ITEM_PIPELINES': {
-           'scraper.pipelines.LCDataScraperDevPipeline': 300,
+           'scraper.pipelines.LCDataScraperProdPipeline': 300,
         },
     }
 
@@ -113,14 +113,14 @@ class GradeSaverSpider(Spider):
             logger.error(f'Missing character list url - {response.url}')
             character_list_url = None
 
-        # yield LiteratureInfo(
-        #     book_title=book_title,
-        #     source=SPIDER_NAME,
-        #     author=author,
-        #     book_url=response.url,
-        #     summary_url=summary_url,
-        #     character_list_url=character_list_url,   
-        # )
+        yield LiteratureInfo(
+            book_title=book_title,
+            source=SPIDER_NAME,
+            author=author,
+            book_url=response.url,
+            summary_url=summary_url,
+            character_list_url=character_list_url,   
+        )
 
     def parse_summary(self, response, book_title):
         paragraphs = response.xpath(

@@ -3,7 +3,7 @@ from scrapy import Spider, Request
 import logging
 
 from scraper.items import LiteratureInfo, CharacterInfo
-from scraper.utils import remove_html_tags
+from scraper.utils import remove_html_tags, clean_text_or_none
 
 SPIDER_NAME = 'shmoop'
 
@@ -115,9 +115,8 @@ class ShmoopSpider(Spider):
         summary = response.xpath(
             '//div[@class="content-wrapper"]/div[2]/p',
         ).extract()
-        summary_text = ' '.join('\n'.join(
-            map(remove_html_tags, summary),
-        ).split())
+        summary_text = ' '.join(map(remove_html_tags, summary))
+        summary_text = clean_text_or_none(summary_text)
         yield LiteratureInfo(
             book_title=book_title,
             source=SPIDER_NAME,

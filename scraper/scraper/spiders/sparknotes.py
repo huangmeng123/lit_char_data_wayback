@@ -3,6 +3,7 @@ from scrapy import Spider, Request
 import logging
 
 from scraper.items import LiteratureInfo, CharacterInfo
+from scraper.utils import clean_text_or_none, remove_html_tags
 
 # Remove all handlers associated with the root logger object.
 for handler in logging.root.handlers[:]:
@@ -122,16 +123,18 @@ class SparknotesSpider(Spider):
         )
 
     def parse_summary(self, response, book_title):
-        summary = response.xpath('//*[@id="plotoverview"]/p/text()').extract()
+        paragraphs = response.xpath('//*[@id="plotoverview"]/p').extract()
+        summary_text = ' '.join(map(remove_html_tags, paragraphs))
+        summary_text = clean_text_or_none(summary_text)
 
-        if len(summary) == 0:
+        if summary_text is None:
             logger.error(f'Empty summary content - {response.url}')
 
         yield LiteratureInfo(
             book_title=book_title,
             source='sparknotes',
             summary_url=response.url,
-            summary_text=' '.join('\n'.join(summary).split()),
+            summary_text=summary_text,
         )
 
     def parse_character_list(self, response, book_title):
@@ -140,20 +143,16 @@ class SparknotesSpider(Spider):
 
         for i, selector in enumerate(character_selectors):
             cname = selector.xpath('./h3/text()').get()
-            cdescription = selector.xpath(f'./p/text()').extract()
-            cdescription_text = ' '.join((''.join(cdescription)).split())
-
-            logger.info(
-                f'\nCharacter Name: {cname}\n'
-                f'Character Order: {i}\n'
-                f'Description: {cdescription_text}\n'
-            )
+            paragraphs = selector.xpath(f'./p').extract()
+            cdescription_text = ' '.join(map(remove_html_tags, paragraphs))
+            cdescription_text = clean_text_or_none(cdescription_text)
 
             yield CharacterInfo(
                 character_name=cname,
                 book_title=book_title,
                 source='sparknotes',
                 character_order=i,
+                character_list_url=response.url,
                 description_url=response.url,
                 description_text=cdescription_text,
             )

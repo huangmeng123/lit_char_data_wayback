@@ -22,7 +22,9 @@ class DatabaseConnection(object):
     def read_literature_data(self):
         query = (
             'SELECT book_title, source, book_url, author, '
-            'summary_url, summary_text, character_list_url FROM literatures;'
+            'summary_url, summary_text, character_list_url FROM literatures '
+            "WHERE summary_text IS NOT NULL AND summary_text <> '' "
+            'ORDER BY source, book_title;'
         )
 
         self.cur.execute(query)
@@ -37,7 +39,8 @@ class DatabaseConnection(object):
         query = (
             'SELECT character_name, book_title, source, character_list_url, '
             'character_order, description_url, description_text, '
-            'analysis_url, analysis_text FROM characters;'
+            'analysis_url, analysis_text FROM characters '
+            'ORDER BY source, book_title, character_order, character_name;'
         )
 
         self.cur.execute(query)
