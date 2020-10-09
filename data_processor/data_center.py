@@ -1,5 +1,6 @@
 import json
 import nltk
+import csv
 
 from database import DatabaseConnection
 from data_schema import Literature, Character
@@ -70,3 +71,19 @@ class DataCenter(object):
     def get_sentence_based_summary(self, ind):
         summary = self.merged_original_books[ind].book_info.summary_text
         return nltk.tokenize.sent_tokenize(summary)
+
+    def export_summary_to_tsv(self, filename):
+        summaries = []
+        keys = list(self.merged_original_books.keys())
+        for i in range(max(keys)+1):
+            if i in self.merged_original_books:
+                summaries.append(
+                    [self.merged_original_books[i].book_info.summary_text],
+                )
+            else:
+                summaries.append([''])
+        
+        with open(filename, 'w', newline='') as outfile:
+            tsv_output = csv.writer(outfile, delimiter='\t')
+            tsv_output.writerow(['Text'])
+            tsv_output.writerows(summaries)
