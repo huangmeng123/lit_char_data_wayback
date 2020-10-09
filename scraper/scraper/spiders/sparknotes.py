@@ -23,9 +23,9 @@ class SparknotesSpider(Spider):
     start_urls = ['http://www.sparknotes.com/lit/']
     custom_settings = {
         'DOWNLOAD_DELAY': 0.5,
-        # 'ITEM_PIPELINES': {
-        #    'scrapynotes.pipelines.LCDataScraperProdPipeline': 300,
-        # },
+        'ITEM_PIPELINES': {
+           'scraper.pipelines.LCDataScraperProdPipeline': 300,
+        },
     }
 
     def parse(self, response):

@@ -36,9 +36,9 @@ class CliffsnotesSpider(Spider):
     ]
     custom_settings = {
         'DOWNLOAD_DELAY': 0.1,
-        # 'ITEM_PIPELINES': {
-        #    'scraper.pipelines.ScrapynotesProdPipeline': 300,
-        # },
+        'ITEM_PIPELINES': {
+           'scraper.pipelines.LCDataScraperProdPipeline': 300,
+        },
     }
 
     def parse(self, response):

@@ -25,10 +25,10 @@ class LitChartsSpider(Spider):
     allowed_domains = ['litcharts.com']
     start_urls = ['https://www.litcharts.com']
     custom_settings = {
-        'DOWNLOAD_DELAY': 0.1,
-        # 'ITEM_PIPELINES': {
-        #    'scrapynotes.pipelines.LCDataScraperProdPipeline': 300,
-        # },
+        # 'DOWNLOAD_DELAY': 0.1,
+        'ITEM_PIPELINES': {
+           'scraper.pipelines.LCDataScraperProdPipeline': 300,
+        },
     }
 
     def parse(self, response):
@@ -147,6 +147,7 @@ class LitChartsSpider(Spider):
                     'book_title': book_title,
                     'character_name': character_name,
                     'character_order': i,
+                    'character_list_url': response.url,
                 },
                 dont_filter=True,
             )
@@ -174,6 +175,7 @@ class LitChartsSpider(Spider):
                     character_name=name,
                     book_title=book_title,
                     source=SPIDER_NAME,
+                    character_list_url=response.url,
                     description_url=response.url,
                     description_text=description_text,
                     character_order=100,
@@ -186,6 +188,7 @@ class LitChartsSpider(Spider):
         book_title,
         character_name,
         character_order,
+        character_list_url,
     ):
         paragraphs = response.xpath(
             '//div[@class="highlightable-content"]',
@@ -201,6 +204,7 @@ class LitChartsSpider(Spider):
                 character_name=character_name,
                 book_title=book_title,
                 source=SPIDER_NAME,
+                character_list_url=character_list_url,
                 description_url=response.url,
                 description_text=description_text,
                 character_order=character_order,
