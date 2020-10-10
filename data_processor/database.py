@@ -24,6 +24,7 @@ class DatabaseConnection(object):
             'SELECT book_title, source, book_url, author, '
             'summary_url, summary_text, character_list_url FROM literatures '
             "WHERE summary_text IS NOT NULL AND summary_text <> '' "
+            "AND source <> 'gradesaver' "
             'ORDER BY source, book_title;'
         )
 
@@ -40,6 +41,7 @@ class DatabaseConnection(object):
             'SELECT character_name, book_title, source, character_list_url, '
             'character_order, description_url, description_text, '
             'analysis_url, analysis_text FROM characters '
+            "WHERE source <> 'gradesaver' "
             'ORDER BY source, book_title, character_order, character_name;'
         )
 

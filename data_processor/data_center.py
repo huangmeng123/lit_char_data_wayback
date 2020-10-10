@@ -18,6 +18,42 @@ class DataCenter(object):
     def get_char_key(char: Character):
         return (char.character_name, char.book_title, char.source)
 
+    @staticmethod
+    def clean_summary(summary: str):
+        replacements = [
+            # honorific titles
+            ('Mr.', 'Mr'),
+            ('Ms.', 'Ms'),
+            ('Mrs.', 'Mrs'),
+            ('Mrs .', 'Mrs'),
+            ('Sir.', 'Sir'),
+            ('Dr.', 'Dr'),
+            (' D.', ' D'),
+
+            # manually corrected abbrv.
+            ('D.C.', 'D.C'),
+            ('D.H.', 'D.H'),
+            ('A.D.', 'A.D'),
+            ('B.D.', 'B.D'),
+            ('Ph.D.', 'Ph.D'),
+            ('D.A.', 'D.A'),
+            ('I.D.', 'I.D'),
+            ('P.D.', 'P.D'),
+            ('J.D.', 'J.D'),
+
+            # compound punctuations
+            ('?', '?|'),
+            ('!', '!|'),
+            ('.', '.|'),
+            ('|"', '"|'),
+            ('| ', '|'),
+        ]
+
+        for old, new in replacements:
+            summary = summary.replace(old, new)
+        
+        return summary
+
     def __init__(self, literatures=None, characters=None):
         db = DatabaseConnection()
         
@@ -70,7 +106,9 @@ class DataCenter(object):
 
     def get_sentence_based_summary(self, ind):
         summary = self.merged_original_books[ind].book_info.summary_text
-        return nltk.tokenize.sent_tokenize(summary)
+        summary = DataCenter.clean_summary(summary)
+        # return nltk.tokenize.sent_tokenize(summary)
+        return list(filter(lambda s: len(s) > 0, summary.strip().split('|')))
 
     def export_summary_to_tsv(self, filename):
         summaries = []
@@ -83,7 +121,24 @@ class DataCenter(object):
             else:
                 summaries.append([''])
         
-        with open(filename, 'w', newline='') as outfile:
-            tsv_output = csv.writer(outfile, delimiter='\t')
-            tsv_output.writerow(['Text'])
-            tsv_output.writerows(summaries)
+        with open(filename, 'wt') as out_file:
+            tsv_writer = csv.writer(out_file, delimiter='\t')
+            tsv_writer.writerow(['Text'])
+            for summary in summaries:
+                tsv_writer.writerow(summary)
+
+    def export_summary_to_txt(self, filename):
+        summaries = []
+        keys = list(self.merged_original_books.keys())
+        for i in range(max(keys)+1):
+            if i in self.merged_original_books:
+                summaries.append(
+                    self.merged_original_books[i].book_info.summary_text,
+                )
+            else:
+                summaries.append('')
+        
+        with open(filename, 'wt') as out_file:
+            print('Text', file=out_file)
+            for summary in summaries:
+                print(summary, file=out_file)
