@@ -1,6 +1,13 @@
 __pycache__
-.vscode
-*.out
-*.json
-*.log
+.vscode/
+data/
+coref/
+html_template/
+htmls/
+temp_files/
+list_*.txt
+main.log
+test_prediction_beams5_maxlen_1024.jsonl
+test.txt
+masked_dataset.zip
 data_processor/main.py

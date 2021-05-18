@@ -6,12 +6,13 @@
 # useful for handling different item types with a single interface
 import psycopg2
 from scraper.items import LiteratureInfo, CharacterInfo
+from typing import BinaryIO
 
 class DatabaseConnection(object):
     def __init__(self, database='lcdata-dev'):
         hostname = 'localhost'
-        username = 'huangme'
-        password = 'huangme'
+        username = 'test'
+        password = 'test'
         self.conn = psycopg2.connect(
             host=hostname,
             user=username,
@@ -65,18 +66,31 @@ class DatabaseConnection(object):
 LIT_PRIMS = ['book_title', 'source']
 CHAR_PRIMS = ['character_name', 'book_title', 'source']
 
+DIR_PATH = '/home/huangme-pop/lit_char_data/scraper/scraper/spiders'
+URLS_FILENAME = f'{DIR_PATH}/list_characters_cached.txt'
+VISITED_URLS_FILENAME = f'{DIR_PATH}/list_characters_cached_scraped.txt'
+
 class LCDataScraperPipeline(object):
     _db: DatabaseConnection
+    _visited_file: BinaryIO
+    _visited = set()
 
     def close_spider(self, spider):
         self._db.close()
+        self._visited_file.close()
 
     def process_item(self, item, spider):
         if isinstance(item, LiteratureInfo):
             self.process_literature_info(item)
+            if item['book_url'] not in self._visited:
+                self._visited_file.write(item['book_url']+'\n')
+                self._visited.add(item['book_url'])
 
         elif isinstance(item, CharacterInfo):
             self.process_character_info(item)
+            if item['description_url'] not in self._visited:
+                self._visited_file.write(item['description_url']+'\n')
+                self._visited.add(item['description_url'])
 
         return item
 
@@ -107,7 +121,14 @@ class LCDataScraperPipeline(object):
 class LCDataScraperProdPipeline(LCDataScraperPipeline):
     def open_spider(self, spider):
         self._db = DatabaseConnection(database='lcdata')
+        self._visited_file = open(VISITED_URLS_FILENAME, 'w')
 
 class LCDataScraperDevPipeline(LCDataScraperPipeline):
     def open_spider(self, spider):
         self._db = DatabaseConnection(database='lcdata-dev')
+        self._visited_file = open(VISITED_URLS_FILENAME, 'w')
+
+class LCDataScraperWaybackPipeline(LCDataScraperPipeline):
+    def open_spider(self, spider):
+        self._db = DatabaseConnection(database='lcdata-wayback')
+        self._visited_file = open(VISITED_URLS_FILENAME, 'w')

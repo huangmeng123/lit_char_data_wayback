@@ -33,7 +33,8 @@ def extract_text(node, use_selector=True):
 
 def remove_html_tags(raw_html):
     cleanr = re.compile('<.*?>')
-    cleantext = re.sub(cleanr, '', raw_html)
+    cleantext = re.sub(cleanr, ' ', raw_html)
+    cleantext = ' '.join(cleantext.strip().split())
     return cleantext
 
 def clean_text_or_none(text):
