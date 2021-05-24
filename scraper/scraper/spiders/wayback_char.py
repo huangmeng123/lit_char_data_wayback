@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from scrapy import Spider, Request
 import logging
-import re, string
+import re, string, json
 
 from scraper.items import CharacterInfo
 from scraper.utils import extract_paragraphs, extract_text
@@ -21,9 +21,9 @@ logger = logging.getLogger('wayback-logger-char')
 logger.setLevel(logging.DEBUG)
 puncts = set(string.punctuation)
 
-DIR_PATH = '/home/huangme-pop/lit_char_data/scraper/scraper/spiders'
-URLS_FILENAME = f'{DIR_PATH}/list_characters_cached.txt'
-VISITED_URLS_FILENAME = f'{DIR_PATH}/list_characters_cached_scraped.txt'
+DIR_PATH = '/home/huangme-pop/lit_char_data_wayback/scraper/scraper/spiders'
+URLS_FILENAME = f'{DIR_PATH}/list_characters_test.txt'
+LITCHARTS_ADJUSTMENT_FILENAME = f'{DIR_PATH}/litcharts_adjustment.json'
 
 class WaybackCharSpider(Spider):
     name = 'wayback_char'
@@ -39,9 +39,9 @@ class WaybackCharSpider(Spider):
         urls = set()
         with open(URLS_FILENAME) as in_f:
             for url in in_f.readlines(): urls.add(url.strip())
-        
-        with open(VISITED_URLS_FILENAME) as in_f:
-            for url in in_f.readlines(): urls.remove(url.strip())
+
+        with open(LITCHARTS_ADJUSTMENT_FILENAME) as in_f:
+            self.litcharts_adjustment = json.load(in_f)
         
         for url in urls:
             if 'www.sparknotes.com/' in url:
@@ -119,10 +119,18 @@ class WaybackCharSpider(Spider):
         character_selectors = response.xpath(character_xpath)
 
         for i, selector in enumerate(character_selectors):
-            cname = selector.xpath('./h3/text()').get()
+            cname = selector.xpath('./h3/text()').get().strip()
             paragraphs = selector.xpath(f'./p/text()').extract()
             cdescription_text = ' '.join(map(remove_html_tags, paragraphs))
             cdescription_text = clean_text_or_none(cdescription_text)
+
+            if (
+                cname == 'Unnamed narrator' and
+                not cdescription_text.startswith(
+                    'Husband of both Lady Ligeia and Lady Rowena'
+                )
+            ):
+                continue
 
             yield CharacterInfo(
                 character_name=cname,
@@ -347,13 +355,21 @@ class WaybackCharSpider(Spider):
             return
         description_text = ' '.join(map(remove_html_tags, paragraphs))
         description_text = clean_text_or_none(description_text)
-        yield CharacterInfo(
+
+        char_info = CharacterInfo(
             character_name=char_name,
             book_title=title,
             source='litcharts',
             description_url=response.url,
             description_text=description_text,
         )
+
+        if char_name in self.litcharts_adjustment:
+            for adjusted_char_name in self.litcharts_adjustment[char_name]:
+                char_info['character_name'] = adjusted_char_name
+                yield char_info
+
+        yield char_info
 
     def parse_litcharts_minor_char(self, response):
         # get book title

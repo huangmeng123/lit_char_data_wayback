@@ -10,6 +10,7 @@ test_prediction_beams5_maxlen_1024.jsonl
 test.txt
 masked_dataset.zip
 data_processor/main.py
+final_data/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
