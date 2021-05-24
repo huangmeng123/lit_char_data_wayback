@@ -140,6 +140,17 @@ class BasicBookCharDataset(BookCharDataset):
             )
             self.char_lookup[char_key].description = new_description
 
+    def adjust_summary(
+        self,
+        change_lookup: Dict[BookKey, List[Tuple[IndRange, str]]],
+    ):
+        for book_key, book_info in self.book_lookup.items():
+            changes = change_lookup.get(book_key, [])
+            new_summary = TextDiffTool.restore_text(
+                book_info.summary, changes
+            )
+            self.book_lookup[book_key].summary = new_summary
+
 
 
 class FinalBookCharDataset(object):

@@ -1,29 +1,41 @@
 # -*- coding: utf-8 -*-
-from scrapy import Spider, Request
+from scrapy import Spider, Request, signals
 import logging
-import re, string, json
+import re, string, json, os
 
 from scraper.items import CharacterInfo
 from scraper.utils import extract_paragraphs, extract_text
 from scraper.utils import clean_text_or_none, remove_html_tags
+from scrapy.utils.log import configure_logging
 
-# Remove all handlers associated with the root logger object.
-for handler in logging.root.handlers[:]:
-    logging.root.removeHandler(handler)
-
-logging.basicConfig(
-    filename='runtime_char.log', 
-    format='%(asctime)s %(message)s', 
-    filemode='w',
-) 
 
 logger = logging.getLogger('wayback-logger-char')
 logger.setLevel(logging.DEBUG)
 puncts = set(string.punctuation)
 
-DIR_PATH = '/home/huangme-pop/lit_char_data_wayback/scraper/scraper/spiders'
-URLS_FILENAME = f'{DIR_PATH}/list_characters_test.txt'
-LITCHARTS_ADJUSTMENT_FILENAME = f'{DIR_PATH}/litcharts_adjustment.json'
+_ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
+_STATIC_DIR = os.path.join(_ROOT_DIR, 'static')
+_OUTPUT_DIR = os.path.join(_ROOT_DIR, 'output')
+_INPUT_DIR = os.path.join(_ROOT_DIR, 'input')
+
+ALL_URLS_FILENAME = os.path.join(_STATIC_DIR, 'list_characters_cached.txt')
+LITCHARTS_ADJUSTMENT_FILENAME = os.path.join(_STATIC_DIR, 'litcharts_adjustment.json')
+
+INPUT_URLS_FILENAME = os.path.join(_INPUT_DIR, 'list_characters_retry.txt')
+OUTPUT_URLS_FILENAME = os.path.join(_OUTPUT_DIR, 'list_characters_failed.txt')
+
+LOG_PATH = os.path.join(_OUTPUT_DIR, 'wayback_char_runtime.log')
+
+
+LOG_ENABLED = False
+# Disable default Scrapy log settings.
+configure_logging(install_root_handler=False)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+_ch = logging.FileHandler(LOG_PATH)
+_ch.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+logger.addHandler(_ch)
 
 class WaybackCharSpider(Spider):
     name = 'wayback_char'
@@ -31,44 +43,47 @@ class WaybackCharSpider(Spider):
     custom_settings = {
         'DOWNLOAD_DELAY': 0.5,
         'ITEM_PIPELINES': {
-           'scraper.pipelines.LCDataScraperWaybackPipeline': 300,
+           'scraper.pipelines.LCDataScraperWaybackFinalPipeline': 300,
         },
     }
 
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(WaybackCharSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
     def start_requests(self):
-        urls = set()
-        with open(URLS_FILENAME) as in_f:
-            for url in in_f.readlines(): urls.add(url.strip())
+        urls = []
+        if INPUT_URLS_FILENAME is not None:
+            with open(INPUT_URLS_FILENAME) as in_f:
+                urls = [
+                    line.strip() for line in in_f.readlines()
+                    if len(line.strip()) > 0
+                ]
+        if len(urls) == 0:
+            with open(ALL_URLS_FILENAME) as in_f:
+                urls = [
+                    line.strip() for line in in_f.readlines()
+                    if len(line.strip()) > 0
+                ]
 
         with open(LITCHARTS_ADJUSTMENT_FILENAME) as in_f:
             self.litcharts_adjustment = json.load(in_f)
         
+        self.failed_urls = set()
+        
         for url in urls:
-            if 'www.sparknotes.com/' in url:
-                yield Request(
-                    url=url,
-                    callback=self.validate_response,
-                    cb_kwargs={
-                        'orig_url': url,
-                    },
-                )
-            elif 'www.cliffsnotes.com/' in url:
-                yield Request(url=url, callback=self.parse_cliffnotes_char)
-            elif 'www.shmoop.com/' in url:
-                yield Request(url=url, callback=self.parse_shmoop_char)
-            elif 'www.litcharts.com/' in url:
-                if url.endswith('/characters'):
-                    yield Request(
-                        url=url,
-                        callback=self.parse_litcharts_minor_char,
-                    )
-                else:
-                    yield Request(
-                        url=url,
-                        callback=self.parse_litcharts_major_char,
-                    )
-            else:
-                logger.error(f'Invalid url - {url}')
+            yield Request(
+                url=url,
+                callback=self.validate_response,
+                cb_kwargs={'orig_url': url},
+            )
+
+    def spider_closed(self, spider):
+        with open(OUTPUT_URLS_FILENAME, 'w') as out_f:
+            for url in self.failed_urls:
+                out_f.write(url+'\n')
 
     @staticmethod
     def get_base_url(url):
@@ -80,32 +95,30 @@ class WaybackCharSpider(Spider):
     def validate_response(self, response, orig_url):
         orig_base_url = self.get_base_url(orig_url)
         response_base_url = self.get_base_url(response.url)
-        if orig_base_url is None or orig_base_url != response_base_url:
+        if orig_base_url != response_base_url:
             logger.error(f'expect {orig_url}, but got {response.url}')
-            yield {
-                'type': 'failed_url',
-                'url': orig_url,
-            }
-        else:
-            url = response.url
-            if 'www.sparknotes.com/' in url:
-                for result in self.parse_sparknotes_char(response):
+            self.failed_urls.add(orig_url)
+            return
+
+        url = response.url
+        if 'www.sparknotes.com/' in url:
+            for result in self.parse_sparknotes_char(response):
+                yield result
+        elif 'www.cliffsnotes.com/' in url:
+            for result in self.parse_cliffnotes_char(response):
+                yield result
+        elif 'www.shmoop.com/' in url:
+            for result in self.parse_shmoop_char(response):
+                yield result
+        elif 'www.litcharts.com/' in url:
+            if url.endswith('/characters'):
+                for result in self.parse_litcharts_minor_char(response):
                     yield result
-            elif 'www.cliffsnotes.com/' in url:
-                for result in self.parse_cliffnotes_char(response):
-                    yield result
-            elif 'www.shmoop.com/' in url:
-                for result in self.parse_shmoop_char(response):
-                    yield result
-            elif 'www.litcharts.com/' in url:
-                if url.endswith('/characters'):
-                    for result in self.parse_litcharts_minor_char(response):
-                        yield result
-                else:
-                    for result in self.parse_litcharts_major_char(response):
-                        yield result
             else:
-                logger.error(f'Invalid url - {url}')
+                for result in self.parse_litcharts_major_char(response):
+                    yield result
+        else:
+            logger.error(f'Invalid url - {url}')
 
     def parse_sparknotes_char(self, response):
         # get book title
@@ -153,9 +166,10 @@ class WaybackCharSpider(Spider):
             return
 
         characters = response.css(
-            'article.copy > p.litNoteText > b,'
-            'article.copy > p.litNoteText > strong'
+            'article.copy > p > b,'
+            'article.copy > p > strong'
         )
+
         # some have p.litNoteTextHeading as class
         heading = False
         if not characters:
@@ -242,24 +256,12 @@ class WaybackCharSpider(Spider):
         
         return characters
 
-    # def capture_shmoop_book_title(self, char_name, text):
-    #     buf = ''
-    #     for c in char_name:
-    #         if c in puncts:
-    #             buf += '\\'
-    #         buf += c
-    #     patterns = [
-    #         rf'^{buf} in (.+) Character Analysis$',
-    #         rf'^{buf} in (.+)$',
-    #     ]
-    #     for pattern in patterns:
-    #         captures = re.search(pattern, text)
-    #         if captures is not None:
-    #             return captures.group(1).strip()
-    #     return None
-
     def shmoop_find_correct_title(self, response):
         title = response.css('ul.items > li:nth-child(4) > a::text').get()
+        if title is not None: return title
+
+        title = response.css('ul.items > li:nth-child(4) > *::text').get()
+        if title == 'Oliver twist': title = 'Oliver Twist'
         if title is not None: return title
 
         content = response.css('meta[name="title"]::attr(content)').get()
@@ -311,6 +313,12 @@ class WaybackCharSpider(Spider):
             characters = self.__parse_shmoop_major_char(response, cname)
 
         for character in characters:
+            if (
+                character['description_text']
+                    .startswith(
+                        'George Hurstwood Jr. is Hurstwood\'s son.'
+                    )
+            ): continue
             yield CharacterInfo(
                 character_name=character['name'],
                 book_title=title,

@@ -17,6 +17,9 @@ LIST_CHAR_KEYS_FILENAME = os.path.join(_STATIC_DIR, 'list_char_keys.json')
 DESCRIPTION_CHANGES_FILENAME = (
     os.path.join(_STATIC_DIR, 'description_changes.json')
 )
+SUMMARY_CHANGES_FILENAME = (
+    os.path.join(_STATIC_DIR, 'summary_changes.json')
+)
 MASKED_DESCRIPTION_CHANGES_FILENAME = (
     os.path.join(_STATIC_DIR, 'masked_description_changes.json')
 )
@@ -45,7 +48,7 @@ def pre_clean_description(description, char_key):
     return description
 
 def main():
-    db_conn = DatabaseConnection('lcdata-wayback')
+    db_conn = DatabaseConnection('lcdata-wayback-final')
     dataset = BasicBookCharDataset.load_from_database(db_conn)
 
     dataset.replace_keys(
@@ -68,6 +71,13 @@ def main():
         for key, val in description_changes.items()
     }
     dataset.adjust_description(change_lookup)
+
+    summary_changes = read_json(SUMMARY_CHANGES_FILENAME)
+    change_lookup = {
+        ast.literal_eval(key): val
+        for key, val in summary_changes.items()
+    }
+    dataset.adjust_summary(change_lookup)
 
     masked_description_changes = read_json(MASKED_DESCRIPTION_CHANGES_FILENAME)
     masked_change_lookup = {
