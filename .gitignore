@@ -10,7 +10,6 @@ test.txt
 masked_dataset.zip
 data_processor/main.py
 final_data/*
-scraper/scraper/spiders/input
 scraper/scraper/spiders/output/*
 final_process_validation.ipynb
 
