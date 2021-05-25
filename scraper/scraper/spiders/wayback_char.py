@@ -9,8 +9,6 @@ from scraper.utils import clean_text_or_none, remove_html_tags
 from scrapy.utils.log import configure_logging
 
 
-logger = logging.getLogger('wayback-logger-char')
-logger.setLevel(logging.DEBUG)
 puncts = set(string.punctuation)
 
 _ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -33,7 +31,7 @@ configure_logging(install_root_handler=False)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-_ch = logging.FileHandler(LOG_PATH)
+_ch = logging.FileHandler(LOG_PATH, 'w+')
 _ch.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 logger.addHandler(_ch)
 
@@ -260,10 +258,6 @@ class WaybackCharSpider(Spider):
         title = response.css('ul.items > li:nth-child(4) > a::text').get()
         if title is not None: return title
 
-        title = response.css('ul.items > li:nth-child(4) > *::text').get()
-        if title == 'Oliver twist': title = 'Oliver Twist'
-        if title is not None: return title
-
         content = response.css('meta[name="title"]::attr(content)').get()
         content = clean_text_or_none(content)
         if content is None: return None
@@ -275,6 +269,8 @@ class WaybackCharSpider(Spider):
             title = capture.group(1)
             title_candidates.add(title)
             pattern = r'.*? in ' + pattern
+
+        if 'Oliver Twist' in title_candidates: return 'Oliver Twist'
 
         content = response.css('meta[name="description"]::attr(content)').get()
         content = clean_text_or_none(content)

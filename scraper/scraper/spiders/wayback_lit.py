@@ -26,7 +26,7 @@ configure_logging(install_root_handler=False)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-_ch = logging.FileHandler(LOG_PATH)
+_ch = logging.FileHandler(LOG_PATH, 'w+')
 _ch.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
 logger.addHandler(_ch)
 
@@ -47,6 +47,8 @@ class WaybackLitSpider(Spider):
         return spider
 
     def start_requests(self):
+        
+
         urls = []
         if INPUT_URLS_FILENAME is not None:
             with open(INPUT_URLS_FILENAME) as in_f:
