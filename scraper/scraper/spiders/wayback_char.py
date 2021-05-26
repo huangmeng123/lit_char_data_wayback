@@ -29,7 +29,7 @@ LOG_ENABLED = False
 # Disable default Scrapy log settings.
 configure_logging(install_root_handler=False)
 
-logger = logging.getLogger()
+logger = logging.getLogger('wayback-char')
 logger.setLevel(logging.INFO)
 _ch = logging.FileHandler(LOG_PATH, 'w+')
 _ch.setFormatter(logging.Formatter('%(asctime)s %(message)s'))

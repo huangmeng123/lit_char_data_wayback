@@ -50,6 +50,7 @@ def main():
             'cd scraper\n'
             'scrapy crawl wayback_lit\n'
             'scrapy crawl wayback_char\n'
+            'cd ..\n'
             'python main.py'
         )
     

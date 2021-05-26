@@ -12,6 +12,9 @@ data_processor/main.py
 final_data/*
 scraper/scraper/spiders/output/*
 final_process_validation.ipynb
+run.sh
+data.jsonl
+runtime.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
