@@ -41,7 +41,7 @@ class WaybackCharSpider(Spider):
     custom_settings = {
         'DOWNLOAD_DELAY': 0.5,
         'ITEM_PIPELINES': {
-           'scraper.pipelines.LCDataScraperWaybackFinalPipeline': 300,
+           'scraper.pipelines.LCDataScraperDatabasePipeline': 300,
         },
     }
 

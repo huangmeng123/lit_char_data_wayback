@@ -64,19 +64,19 @@ class CharacterInfoWithMaskedDescription(object):
         )
 
 
+@dataclass
 class DatabaseConnection(object):
-    def __init__(self, db_name: str):
-        self.host = 'localhost'
-        self.user = 'test'
-        self.password = 'test'
-        self.db_name = db_name
+    host: str # database host name
+    user: str # database user name
+    password: str # user password
+    dbname: str # database name
 
     def _connect(self):
         self.conn = psycopg2.connect(
             host=self.host,
             user=self.user,
             password=self.password,
-            dbname=self.db_name,
+            dbname=self.dbname,
         )
         self.cur = self.conn.cursor()
 

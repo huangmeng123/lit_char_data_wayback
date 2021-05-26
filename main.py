@@ -1,18 +1,18 @@
 import ast
-from dataclasses import dataclass
-from final_process.text_diff_tool import TextDiffTool
+import configparser
+from lib.text_diff_tool import TextDiffTool
 import os
 
-from final_process.database_util import CharacterInfoWithMaskedDescription, DatabaseConnection
-from final_process.book_char_dataset import BasicBookCharDataset, FinalBookCharDataset
-from final_process.key_translator import KeyTranslator
-from final_process.common_util import read_json
+from lib.database_util import CharacterInfoWithMaskedDescription, DatabaseConnection
+from lib.book_char_dataset import BasicBookCharDataset, FinalBookCharDataset
+from lib.key_translator import KeyTranslator
+from lib.common_util import read_json
 
 _ROOT_DIR = os.path.dirname(os.path.realpath(__file__))
 _STATIC_DIR = os.path.join(_ROOT_DIR, 'static')
-_DATA_DIR = os.path.join(_ROOT_DIR, 'final_data')
 
 # filenames
+RUNTIME_CONFIG_FILENAME = os.path.join(_ROOT_DIR, 'runtime.ini')
 LIST_CHAR_KEYS_FILENAME = os.path.join(_STATIC_DIR, 'list_char_keys.json')
 DESCRIPTION_CHANGES_FILENAME = (
     os.path.join(_STATIC_DIR, 'description_changes.json')
@@ -23,7 +23,6 @@ SUMMARY_CHANGES_FILENAME = (
 MASKED_DESCRIPTION_CHANGES_FILENAME = (
     os.path.join(_STATIC_DIR, 'masked_description_changes.json')
 )
-DATASET_OUTPUT_FILENAME = os.path.join(_DATA_DIR, 'data.jsonl')
 
 
 KEY_TRANSLATOR = KeyTranslator.load_from_json_files(
@@ -47,8 +46,19 @@ def pre_clean_description(description, char_key):
     
     return description
 
+def load_config():
+    config = configparser.ConfigParser()
+    config.read(RUNTIME_CONFIG_FILENAME)
+    return config
+
 def main():
-    db_conn = DatabaseConnection('lcdata-wayback-final')
+    config = load_config()
+    db_conn = DatabaseConnection(
+        host=config['database']['host'],
+        user=config['database']['user'],
+        password=config['database']['password'],
+        dbname=config['database']['dbname'],
+    )
     dataset = BasicBookCharDataset.load_from_database(db_conn)
 
     dataset.replace_keys(
@@ -102,7 +112,7 @@ def main():
         characters=new_char_infos,
     )
 
-    final_dataset.export_to_jsonl(DATASET_OUTPUT_FILENAME)
+    final_dataset.export_to_jsonl(config['output']['filename'])
 
 if __name__ == '__main__':
     main()

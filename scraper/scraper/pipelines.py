@@ -4,20 +4,34 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 # useful for handling different item types with a single interface
+import configparser
+import os
 import psycopg2
 from scraper.items import LiteratureInfo, CharacterInfo
-from typing import BinaryIO
+
+
+_CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+_ROOT_DIR = os.path.join(_CURRENT_DIR, '../..')
+
+RUNTIME_CONFIG_FILENAME = os.path.join(_ROOT_DIR, 'runtime.ini')
+
+LIT_PRIMS = ['book_title', 'source']
+CHAR_PRIMS = ['character_name', 'book_title', 'source']
+
+
+def load_config() -> configparser.ConfigParser:
+    config = configparser.ConfigParser()
+    config.read(RUNTIME_CONFIG_FILENAME)
+    return config
+
 
 class DatabaseConnection(object):
-    def __init__(self, database='lcdata-dev'):
-        hostname = 'localhost'
-        username = 'test'
-        password = 'test'
+    def __init__(self, host, user, password, dbname):
         self.conn = psycopg2.connect(
-            host=hostname,
-            user=username,
+            host=host,
+            user=user,
             password=password,
-            dbname=database,
+            dbname=dbname,
         )
         self.cur = self.conn.cursor()
 
@@ -63,12 +77,6 @@ class DatabaseConnection(object):
         return self.cur.fetchall()
 
 
-LIT_PRIMS = ['book_title', 'source']
-CHAR_PRIMS = ['character_name', 'book_title', 'source']
-
-DIR_PATH = '/home/huangme-pop/lit_char_data/scraper/scraper/spiders'
-URLS_FILENAME = f'{DIR_PATH}/list_characters_cached.txt'
-
 class LCDataScraperPipeline(object):
     _db: DatabaseConnection
 
@@ -108,18 +116,12 @@ class LCDataScraperPipeline(object):
             optional_fields=optional_fields,
         )
 
-class LCDataScraperProdPipeline(LCDataScraperPipeline):
+class LCDataScraperDatabasePipeline(LCDataScraperPipeline):
     def open_spider(self, spider):
-        self._db = DatabaseConnection(database='lcdata')
-
-class LCDataScraperDevPipeline(LCDataScraperPipeline):
-    def open_spider(self, spider):
-        self._db = DatabaseConnection(database='lcdata-dev')
-
-class LCDataScraperWaybackPipeline(LCDataScraperPipeline):
-    def open_spider(self, spider):
-        self._db = DatabaseConnection(database='lcdata-wayback')
-
-class LCDataScraperWaybackFinalPipeline(LCDataScraperPipeline):
-    def open_spider(self, spider):
-        self._db = DatabaseConnection(database='lcdata-wayback-final')
+        config = load_config()
+        self._db = DatabaseConnection(
+            host=config['database']['host'],
+            user=config['database']['user'],
+            password=config['database']['password'],
+            dbname=config['database']['dbname'],
+        )
