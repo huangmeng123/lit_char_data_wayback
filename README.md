@@ -1,5 +1,5 @@
 # LiSCU Dataset
-LiSCU is a dataset of literary pieces and their summaries paired with descriptions of characters that appear in them (presented by [_“Let Your Characters Tell Their Story”:A Dataset for Character-Centric Narrative Understanding_]()). It was created from various online study guides such as [shmoop](https://www.shmoop.com/study-guides/literature), [SparkNotes](https://www.sparknotes.com/lit/), [CliffsNotes](https://www.cliffsnotes.com/literature), and [LitCharts](https://www.litcharts.com). 
+LiSCU is a dataset of literary pieces and their summaries paired with descriptions of characters that appear in them (presented by [_"Let Your Characters Tell Their Story": A Dataset for Character-Centric Narrative Understanding_](https://arxiv.org/abs/2109.05438)). It was created from various online study guides such as [shmoop](https://www.shmoop.com/study-guides/literature), [SparkNotes](https://www.sparknotes.com/lit/), [CliffsNotes](https://www.cliffsnotes.com/literature), and [LitCharts](https://www.litcharts.com). 
 
 This repo provides a way to reproduce the dataset from [Wayback Machine](https://archive.org/web/), a time-stamped digital archive of the web.
 
@@ -13,7 +13,7 @@ This repo provides a way to reproduce the dataset from [Wayback Machine](https:/
 
 - We encourage you to use virtual environments when recreating the dataset. The recommended Python version is 3.8.
 
-## Instructions
+## Generating the dataset
 First, generate the running script by running the following command.
 > python generate_run_script.py -o <output_path> -i <database_name> --user <database_username> --password <database_user_password>
 
