@@ -4,12 +4,17 @@ coref/
 html_template/
 htmls/
 temp_files/
-list_*.txt
 main.log
 test_prediction_beams5_maxlen_1024.jsonl
 test.txt
 masked_dataset.zip
 data_processor/main.py
+final_data/*
+scraper/scraper/spiders/output/*
+final_process_validation.ipynb
+run.sh
+data.jsonl
+runtime.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -27,7 +32,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/

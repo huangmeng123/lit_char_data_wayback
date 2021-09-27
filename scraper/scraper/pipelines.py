@@ -4,20 +4,34 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 # useful for handling different item types with a single interface
+import configparser
+import os
 import psycopg2
 from scraper.items import LiteratureInfo, CharacterInfo
-from typing import BinaryIO
+
+
+_CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+_ROOT_DIR = os.path.join(_CURRENT_DIR, '../..')
+
+RUNTIME_CONFIG_FILENAME = os.path.join(_ROOT_DIR, 'runtime.ini')
+
+LIT_PRIMS = ['book_title', 'source']
+CHAR_PRIMS = ['character_name', 'book_title', 'source']
+
+
+def load_config() -> configparser.ConfigParser:
+    config = configparser.ConfigParser()
+    config.read(RUNTIME_CONFIG_FILENAME)
+    return config
+
 
 class DatabaseConnection(object):
-    def __init__(self, database='lcdata-dev'):
-        hostname = 'localhost'
-        username = 'test'
-        password = 'test'
+    def __init__(self, host, user, password, dbname):
         self.conn = psycopg2.connect(
-            host=hostname,
-            user=username,
+            host=host,
+            user=user,
             password=password,
-            dbname=database,
+            dbname=dbname,
         )
         self.cur = self.conn.cursor()
 
@@ -63,34 +77,18 @@ class DatabaseConnection(object):
         return self.cur.fetchall()
 
 
-LIT_PRIMS = ['book_title', 'source']
-CHAR_PRIMS = ['character_name', 'book_title', 'source']
-
-DIR_PATH = '/home/huangme-pop/lit_char_data/scraper/scraper/spiders'
-URLS_FILENAME = f'{DIR_PATH}/list_characters_cached.txt'
-VISITED_URLS_FILENAME = f'{DIR_PATH}/list_characters_cached_scraped.txt'
-
 class LCDataScraperPipeline(object):
     _db: DatabaseConnection
-    _visited_file: BinaryIO
-    _visited = set()
 
     def close_spider(self, spider):
         self._db.close()
-        self._visited_file.close()
 
     def process_item(self, item, spider):
         if isinstance(item, LiteratureInfo):
             self.process_literature_info(item)
-            if item['book_url'] not in self._visited:
-                self._visited_file.write(item['book_url']+'\n')
-                self._visited.add(item['book_url'])
 
         elif isinstance(item, CharacterInfo):
             self.process_character_info(item)
-            if item['description_url'] not in self._visited:
-                self._visited_file.write(item['description_url']+'\n')
-                self._visited.add(item['description_url'])
 
         return item
 
@@ -118,17 +116,12 @@ class LCDataScraperPipeline(object):
             optional_fields=optional_fields,
         )
 
-class LCDataScraperProdPipeline(LCDataScraperPipeline):
+class LCDataScraperDatabasePipeline(LCDataScraperPipeline):
     def open_spider(self, spider):
-        self._db = DatabaseConnection(database='lcdata')
-        self._visited_file = open(VISITED_URLS_FILENAME, 'w')
-
-class LCDataScraperDevPipeline(LCDataScraperPipeline):
-    def open_spider(self, spider):
-        self._db = DatabaseConnection(database='lcdata-dev')
-        self._visited_file = open(VISITED_URLS_FILENAME, 'w')
-
-class LCDataScraperWaybackPipeline(LCDataScraperPipeline):
-    def open_spider(self, spider):
-        self._db = DatabaseConnection(database='lcdata-wayback')
-        self._visited_file = open(VISITED_URLS_FILENAME, 'w')
+        config = load_config()
+        self._db = DatabaseConnection(
+            host=config['database']['host'],
+            user=config['database']['user'],
+            password=config['database']['password'],
+            dbname=config['database']['dbname'],
+        )
