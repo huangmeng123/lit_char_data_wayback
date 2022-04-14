@@ -37,6 +37,9 @@ def main():
     }
     config['output'] = {
         'filename': args.output_filename,
+        'train_filename': 'train_' + args.output_filename,
+        'test_filename': 'test_' + args.output_filename,
+        'val_filename': 'val_' + args.output_filename,
     }
     with open('runtime.ini', 'w') as config_f:
         config.write(config_f)

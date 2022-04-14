@@ -1,5 +1,6 @@
 import ast
 import configparser
+from typing import final
 from lib.text_diff_tool import TextDiffTool
 import os
 
@@ -24,6 +25,9 @@ MASKED_DESCRIPTION_CHANGES_FILENAME = (
     os.path.join(_STATIC_DIR, 'masked_description_changes.json')
 )
 
+TRAIN_KEY_ORDER_FILENAME = os.path.join(_STATIC_DIR, 'train_keys.txt')
+TEST_KEY_ORDER_FILENAME = os.path.join(_STATIC_DIR, 'test_keys.txt')
+VAL_KEY_ORDER_FILENAME = os.path.join(_STATIC_DIR, 'val_keys.txt')
 
 KEY_TRANSLATOR = KeyTranslator.load_from_json_files(
     os.path.join(_STATIC_DIR, 'new_book_key_to_old_book_key_mapping.json'),
@@ -31,6 +35,7 @@ KEY_TRANSLATOR = KeyTranslator.load_from_json_files(
     os.path.join(_STATIC_DIR, 'new_char_key_to_old_char_key_mapping.json'),
     os.path.join(_STATIC_DIR, 'old_char_key_to_new_char_key_mapping.json'),
 )
+
 
 def pre_clean_description(description, char_key):
     while description.endswith(' Read an'):
@@ -114,5 +119,20 @@ def main():
 
     final_dataset.export_to_jsonl(config['output']['filename'])
 
+    with open(TRAIN_KEY_ORDER_FILENAME) as train_key_f:
+        train_keys = list(train_key_f.readlines())
+        final_dataset.export_to_jsonl_with_selected_keys(
+            config['output']['train_filename'], train_keys)
+
+    with open(TEST_KEY_ORDER_FILENAME) as test_key_f:
+        test_keys = list(test_key_f.readlines())
+        final_dataset.export_to_jsonl_with_selected_keys(
+            config['output']['test_filename'], test_keys)
+
+    with open(VAL_KEY_ORDER_FILENAME) as val_key_f:
+        val_keys = list(val_key_f.readlines())
+        final_dataset.export_to_jsonl_with_selected_keys(
+            config['output']['val_filename'], val_keys)
+    
 if __name__ == '__main__':
     main()

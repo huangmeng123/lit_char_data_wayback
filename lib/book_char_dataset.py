@@ -206,3 +206,28 @@ class FinalBookCharDataset(object):
                 'masked_description': char_info.masked_description,
             })
         write_jsonl(filename, book_char_data)
+    
+    def export_to_jsonl_with_selected_keys(
+        self,
+        filename: str,
+        keys: List[str],
+    ):
+        book_char_data = []
+        char_info_lookup: Dict[str, CharacterInfoWithMaskedDescription] = {
+            f"{c['character_name']}|{c['book_title']}|{c['source']}": c
+            for c in self.char_lookup.values
+        }
+        for key in keys:
+            char_info = char_info_lookup[key]
+            book_key = char_info.book_key
+            book_info = self.book_lookup[book_key]
+            book_char_data.append({
+                'book_title': book_info.book_title,
+                'source': book_info.source,
+                'character_name': char_info.character_name,
+                'summary': book_info.summary,
+                'description': char_info.description,
+                'masked_description': char_info.masked_description,
+            })
+        write_jsonl(filename, book_char_data)
+        
