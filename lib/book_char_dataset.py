@@ -214,8 +214,8 @@ class FinalBookCharDataset(object):
     ):
         book_char_data = []
         char_info_lookup: Dict[str, CharacterInfoWithMaskedDescription] = {
-            f"{c['character_name']}|{c['book_title']}|{c['source']}": c
-            for c in self.char_lookup.values
+            f"{c.character_name}|{c.book_title}|{c.source}": c
+            for c in self.char_lookup.values()
         }
         for key in keys:
             char_info = char_info_lookup[key]

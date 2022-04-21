@@ -10,7 +10,7 @@ def read_jsonl(filename: str) -> List[Any]:
     return data
 
 def write_jsonl(filename: str, data: List[Any]):
-    with open(filename, 'w') as out_f:
+    with open(filename, 'w+') as out_f:
         for d in data:
             out_f.write(json.dumps(d)+'\n')
 

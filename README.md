@@ -15,12 +15,21 @@ This repo provides a way to reproduce the dataset from [Wayback Machine](https:/
 
 ## Generating the dataset
 First, generate the running script by running the following command.
-> python generate_run_script.py -o <output_path> -i <database_name> --user <database_username> --password <database_user_password>
+> python generate_run_script.py -o <output_dir> -i <database_name> --user <database_username> --password <database_user_password> \[--skip_scraping\]
 
-**output_path** is the path you want to export the dataset to. **database_name** is the database you want to create for storing the scraped data from Wayback Machine. **database_usename** and **database_user_password** are the username and password you prepared for this reproducing process.
+**output_dir** is the path to the directory you want to export the dataset to. **database_name** is the database you want to create for storing the scraped data from Wayback Machine. **database_usename** and **database_user_password** are the username and password you prepared for this reproducing process.
+
+```
+Note: If "skip_scraping" is enabled, the generated script will only run processes after the data have been scraped. Only use this flag when you have already run the scraping process completely.
+```
 
 Then, run the generated script to start the reproducing process.
 > ./run.sh
 
 
-The process may take a few hours to be finished. After the process finishes, you can find the recreated dataset at the **output_path**.
+The process may take a few hours to be finished. After the process finishes, you can find all recreated datasets at the **output_dir**. To be more specific, there will be 4 jsonl files in the **output_dir**:
+
+- liscu_all.jsonl
+- liscu_train.jsonl
+- liscu_test.jsonl
+- liscu_val.jsonl

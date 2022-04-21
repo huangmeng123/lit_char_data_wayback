@@ -7,8 +7,8 @@ def get_args():
         description='Configurate data generating process'
     )
     parser.add_argument(
-        '-o', '--output', type=str, dest='output_filename',
-        help='the output file path',
+        '-o', '--output_dir', type=str, dest='output_dir',
+        help='the output directory path',
     )
     parser.add_argument(
         '-i', '--dbname', type=str, dest='dbname',
@@ -24,6 +24,10 @@ def get_args():
     parser.add_argument(
         '--password', type=str, help='the password of the database user',
     )
+    parser.add_argument(
+        '--skip_scraping', action='store_true',
+        help='whether to run the scraping process',
+    )
     return parser.parse_args()
 
 def main():
@@ -35,27 +39,29 @@ def main():
         'password': args.password,
         'dbname': args.dbname,
     }
+
     config['output'] = {
-        'filename': args.output_filename,
-        'train_filename': 'train_' + args.output_filename,
-        'test_filename': 'test_' + args.output_filename,
-        'val_filename': 'val_' + args.output_filename,
+        'filename': os.path.join(args.output_dir, 'liscu_all.jsonl'),
+        'train_filename': os.path.join(args.output_dir, 'liscu_train.jsonl'),
+        'test_filename': os.path.join(args.output_dir, 'liscu_test.jsonl'),
+        'val_filename': os.path.join(args.output_dir, 'liscu_val.jsonl'),
     }
     with open('runtime.ini', 'w') as config_f:
         config.write(config_f)
 
     with open('run.sh', 'w') as script_f:
-        script_f.write(
-            f'export PGPASSWORD=\'{args.password}\'\n'
-            f'createdb -U {args.user} -h {args.host} {args.dbname}\n'
-            f'psql -U {args.user} -h {args.host} {args.dbname} '
-            f'-f database/create_tables.sql\n'
-            'cd scraper\n'
-            'scrapy crawl wayback_lit\n'
-            'scrapy crawl wayback_char\n'
-            'cd ..\n'
-            'python main.py'
-        )
+        if not args.skip_scraping:
+            script_f.write(
+                f'export PGPASSWORD=\'{args.password}\'\n'
+                f'createdb -U {args.user} -h {args.host} {args.dbname}\n'
+                f'psql -U {args.user} -h {args.host} {args.dbname} '
+                f'-f database/create_tables.sql\n'
+                'cd scraper\n'
+                'scrapy crawl wayback_lit\n'
+                'scrapy crawl wayback_char\n'
+                'cd ..\n'
+            )
+        script_f.write('python main.py')
     
     st = os.stat('run.sh')
     os.chmod('run.sh', st.st_mode | stat.S_IEXEC)

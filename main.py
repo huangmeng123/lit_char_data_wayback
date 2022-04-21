@@ -120,17 +120,17 @@ def main():
     final_dataset.export_to_jsonl(config['output']['filename'])
 
     with open(TRAIN_KEY_ORDER_FILENAME) as train_key_f:
-        train_keys = list(train_key_f.readlines())
+        train_keys = list(train_key_f.read().splitlines())
         final_dataset.export_to_jsonl_with_selected_keys(
             config['output']['train_filename'], train_keys)
 
     with open(TEST_KEY_ORDER_FILENAME) as test_key_f:
-        test_keys = list(test_key_f.readlines())
+        test_keys = list(test_key_f.read().splitlines())
         final_dataset.export_to_jsonl_with_selected_keys(
             config['output']['test_filename'], test_keys)
 
     with open(VAL_KEY_ORDER_FILENAME) as val_key_f:
-        val_keys = list(val_key_f.readlines())
+        val_keys = list(val_key_f.read().splitlines())
         final_dataset.export_to_jsonl_with_selected_keys(
             config['output']['val_filename'], val_keys)
     
